@@ -36,3 +36,27 @@ export function setViewing(profile,id,status){
   if(status!=='seen')delete next.ratings[id];
   return next;
 }
+
+// Baseline: equal editorial labels, no imported intensity weights or award bonuses.
+export const FEATURE_GROUPS=['humor','tone','setting','themes','structure','format','devices'];
+export function features(show){return FEATURE_GROUPS.flatMap(group=>{const values=show.tags[group];return (Array.isArray(values)?values:values?[values]:[]).map(value=>`${group}:${value}`)});}
+export function ratingEvidence(catalog,profile){
+ const evidence={};
+ for(const show of catalog.shows){const rating=profile.ratings[show.id];if(!rating)continue;
+  for(const key of features(show)){
+   const e=evidence[key]??={sum:0,count:0,yes:[],no:[],meh:[]};e.count++;e.sum+=({yes:2,meh:0,no:-2}[rating]);e[rating].push(show);
+  }
+ }
+ for(const e of Object.values(evidence))e.weight=e.sum/Math.max(2,e.count);
+ return evidence;
+}
+export function rankShows(catalog,profile,{includeUnknown=false,includeCandidates=false}={}){
+ const evidence=ratingEvidence(catalog,profile);
+ const eligible=new Set(catalog.views.documented_selection.show_ids);
+ if(includeCandidates)for(const id of catalog.views.reputation_review_candidates.show_ids)eligible.add(id);
+ return catalog.shows.filter(show=>eligible.has(show.id)&&(statusOf(profile,show.id)==='not-seen'||(includeUnknown&&statusOf(profile,show.id)==='unknown'))).map(show=>{
+  const keys=features(show),denominator=Math.max(1,keys.length);
+  const contributions=keys.map(key=>({key,weight:evidence[key]?.weight||0,source:'ratings'})).map(c=>({...c,contribution:c.weight/denominator}));
+  return {show,score:contributions.reduce((sum,c)=>sum+c.contribution,0),contributions:contributions.sort((a,b)=>Math.abs(b.contribution)-Math.abs(a.contribution)||a.key.localeCompare(b.key)),status:statusOf(profile,show.id)};
+ }).sort((a,b)=>b.score-a.score||a.show.id.localeCompare(b.show.id,'en'));
+}

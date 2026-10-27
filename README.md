@@ -6,7 +6,7 @@ Users will record shows they have seen without having to rate them, optionally r
 
 ## Current stage
 
-Stage 3 is implemented: browsing, optional ratings, separate viewing history, compact entry, undo, and personal backups. See [DEVELOPMENT.md](DEVELOPMENT.md) for preview instructions, checks, and stage-by-stage changes.
+Stage 4 is implemented: tracking plus transparent full-pool recommendations. See [DEVELOPMENT.md](DEVELOPMENT.md) for preview instructions, checks, and stage-by-stage changes.
 
 The repository root inspected on October 27, 2026 contains `catalog.json` and `ChatGPTcatalog.json`. Before this README was added, there was no existing webpage code or README on the inspected default branch. Preserve both catalogs; the latter is a reference snapshot only.
 
