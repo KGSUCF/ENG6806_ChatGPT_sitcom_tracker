@@ -41,3 +41,36 @@ Comparison uses the same three fixed profiles and adds warm=More, cringe=Less. N
 Checks: neutral equivalence, survey vocabulary, invalid answers, earlier backup migration, round trips, plus DOM integration for filters, ratings, status confirmation, Undo, compact mode, recommendation limits/Seen exclusions, survey persistence and independent reset. `tests/interface.test.mjs` needs jsdom installed in the developer test environment; it is not a site dependency. Browser installation failed in the execution environment, so DOM checks are not visual browser verification. Manual: open/skip/revisit the survey; reset; import an older backup; check keyboard and phone layout.
 
 Commit: Add optional catalog-based taste survey and compare baseline results.
+
+## Stage 6 — inspect and correct assumptions
+
+The assumptions panel uses actual rated-show evidence. It shows up to six features with the most rated examples, plus existing adjustments so they remain editable. Each pattern includes Yes/No/Meh counts and up to three titles from each group. Fewer than three examples is explicitly very tentative; mixed Yes/No evidence is shown as conflicting. Shared tags cannot establish why a person liked a show.
+
+More/Less adds ±1 to a feature's weight. Ignore zeroes all contributions for that feature, retaining it in the averaging denominator so ignoring it does not silently amplify other features. Clearing a correction restores rating/survey contributions. These corrections are distinct from survey answers and never alter the catalog. Version 4 backups add adjustments; versions 1–3 migrate with empty corrections. Resetting corrections keeps history, ratings and survey answers. Score details identify ratings, survey, manual adjustment and ignored features separately.
+
+Checks: corrections raise/lower actual scores, Ignore zeroes the selected feature, clearing restores baseline results, round trips, older migrations, one-rating caution, contradictory evidence, and DOM correction/reset interactions. Import tests also cover malformed JSON, cancellation, version-1 replacement, and simulated page-refresh persistence. Compact mode now hides detailed rating/status controls for quick one-click Seen entry; leave compact mode to edit those details. All source files were formatted with indentation for easier reading (formatting accounts for much of this stage's diff). Formatting was a developer tool only; the site still has no build step.
+
+Commit: Add inspectable taste patterns and personal feature corrections.
+
+## Review checklist for the finished stages
+
+1. Search a familiar title, choose Yes, refresh, and check that Seen and Yes remain.
+2. Change that rated show to Not seen: cancel first, then accept and Undo. Try “Too long ago to judge.”
+3. Enter compact mode and quickly mark several shows Seen. Check the Unknown/Not seen filters separately.
+4. Mark eligible shows Not seen, inspect recommendations, then opt into Unknown and the broader 50-item list. Mark a suggestion Seen and confirm it disappears; Undo restores it.
+5. Edit the optional survey, inspect the actual score contributions, and reset just the survey.
+6. Inspect supporting/conflicting examples, apply More/Less/Ignore, and reset just the corrections.
+7. Export; make a change; import the backup and confirm replacement. Cancel an import and try malformed JSON. Neither should change the profile.
+8. Check phone-width layout, keyboard operation and visible focus in a real browser. DOM tests do not verify rendering, screen readers, native download behavior, or every browser's storage restrictions.
+
+## Prompt 7 — pending real usage observations
+
+No usage observations or focused revision were supplied: the prompt contains placeholders. No substantive revision, issue, branch or pull request has been fabricated. Once Karen reports what worked, what was confusing, and one desired improvement, turn that evidence into an issue with observable acceptance criteria, then implement on a feature branch, validate, open a PR, and report the diff. The assistant handles Git operations under Karen's updated authorization. Deployment is still pending the publication step.
+
+A branch gives the revision its own line of commits without replacing main. The manual equivalent is `git switch -c feature/short-description` from an up-to-date main; this is explanatory, not a task Karen must perform. A pull request compares that branch with main so the focused change and tests can be reviewed before merging.
+
+To compare safely now, use GitHub's commit/compare pages, which do not change source files or browser data. The baseline recommendation commit is 9491276b054ec87ab8f85d43a9ab90d360f659d0. Export personal data before running an older version: older code may reject newer backup versions. Use a separate browser profile or a different local port for old-version trials, and do not overwrite current files or storage.
+
+## Validation limits
+
+Automated data and DOM checks pass. A headless-browser download failed in this environment; actual visual rendering, mobile touch interaction, screen-reader behavior and native download flows remain manual checks. Catalog facts and subjective tags are not independently re-audited. No quality improvement is claimed without user feedback. Browser profiles are local to an origin; switching from localhost to GitHub Pages requires export/import. Undo lasts only for the current visit.

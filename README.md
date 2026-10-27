@@ -6,7 +6,7 @@ Users will record shows they have seen without having to rate them, optionally r
 
 ## Current stage
 
-Stage 5 is implemented: tracking, transparent recommendations, and an optional taste survey. See [DEVELOPMENT.md](DEVELOPMENT.md) for preview instructions, checks, and stage-by-stage changes.
+Prompts 2–6 are implemented: tracking, viewing history, transparent recommendations, an optional taste survey, and personal feature corrections. Prompt 7 awaits real usage observations and a focused revision request. See [DEVELOPMENT.md](DEVELOPMENT.md) for preview instructions, checks, and stage-by-stage changes.
 
 The repository root inspected on October 27, 2026 contains `catalog.json` and `ChatGPTcatalog.json`. Before this README was added, there was no existing webpage code or README on the inspected default branch. Preserve both catalogs; the latter is a reference snapshot only.
 
@@ -71,7 +71,10 @@ These are basic structural checks, not a complete JSON Schema validation or inde
 | `ChatGPTcatalog.json` | Reference snapshot; never loaded by the app | Existing |
 | `index.html` | Page structure at repository root | 2 |
 | `styles.css` | Appearance and responsive layout | 2 |
-| `app.js` | Load catalog and add behavior incrementally | 2 onward |
+| `app.js` | Browser events, rendering, and profile persistence | 2 onward |
+| `core.mjs` | Plain JavaScript validation and scoring functions | 2 onward |
+| `tests/` | Synthetic test profiles and optional DOM checks | 2 onward |
+| `DEVELOPMENT.md` | Stage log, formulas, comparisons and manual checks | 2 onward |
 
 No framework, build step, or server-side application. Personal data will live separately in browser storage, with backup/import planned later; it will not be committed to the repository. Browser storage belongs to a particular browser/site and can be cleared.
 
@@ -84,7 +87,7 @@ No framework, build step, or server-side application. Personal data will live se
 5. Add explainable recommendations using the documented eligibility rules, preferences, and seen-show exclusions.
 6. Add personal-data export/import with alias handling; check accessibility, mobile layout, and failure cases; prepare GitHub Pages deployment.
 
-Complete and review one stage before implementing the next. Later features listed here are plans, not completed work.
+The staged implementation history and validations are recorded in DEVELOPMENT.md. GitHub Pages publication and the usage-driven branch/PR revision remain pending.
 
 ## Development and version control
 
@@ -92,6 +95,6 @@ Make small, coherent changes. Explain important code and Git concepts in beginne
 
 Karen has authorized the assistant to handle repository edits, staging, clear commit messages, commits, pushes, and merges within the agreed project stage. Karen will inspect the resulting changes on GitHub. Continue one stage at a time; do not implement later features early. Deployment remains a later planned stage. The assistant must not write the assignment reflection.
 
-A commit is a named snapshot of selected changes; pushing sends local commits to GitHub. For this first change, review only a new `README.md`; neither catalog should appear as modified. Suggested commit message: `Document sitcom tracker project plan`.
+A commit is a named snapshot of selected changes; pushing sends local commits to GitHub. Each implemented prompt has its own commit. The assistant reports changes and validation; Karen inspects the repository. No knowledge quizzes or assignment reflection are generated.
 
 Preview using `python -m http.server 8000` from this folder, then visit http://localhost:8000. See DEVELOPMENT.md. No build step is required.

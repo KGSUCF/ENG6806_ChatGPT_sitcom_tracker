@@ -1,48 +1,400 @@
-import {emptyProfile,validateProfile,STORAGE_KEY,statusOf,setViewing,rankShows,ratingEvidence,SURVEY} from './core.mjs';
-const $=id=>document.getElementById(id);
-let catalog, profile, page=0, storageBlocked=false;
-const undo=[];
-const escape=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const notice=(text,error=false)=>{$('message').textContent=text;$('message').classList.toggle('error',error)};
-function save(next,restore=false){
-  if(storageBlocked&&!restore){notice('Saved data could not be read. Export or repair it before making changes; nothing has been overwritten.',true);return false;}
-  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(next));undo.push(structuredClone(profile));if(undo.length>30)undo.shift();profile=next;storageBlocked=false;notice('Saved in this browser.');return true;}
-  catch{notice('Browser storage is unavailable or full. This change was not saved. Export your existing profile for safekeeping.',true);return false;}
+import {
+  emptyProfile,
+  validateProfile,
+  STORAGE_KEY,
+  statusOf,
+  setViewing,
+  rankShows,
+  ratingEvidence,
+  SURVEY,
+} from "./core.mjs";
+const $ = (id) => document.getElementById(id);
+let catalog,
+  profile,
+  page = 0,
+  storageBlocked = false;
+const undo = [];
+const escape = (s) =>
+  String(s).replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ],
+  );
+const notice = (text, error = false) => {
+  $("message").textContent = text;
+  $("message").classList.toggle("error", error);
+};
+function save(next, restore = false) {
+  if (storageBlocked && !restore) {
+    notice(
+      "Saved data could not be read. Export or repair it before making changes; nothing has been overwritten.",
+      true,
+    );
+    return false;
+  }
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    undo.push(structuredClone(profile));
+    if (undo.length > 30) undo.shift();
+    profile = next;
+    storageBlocked = false;
+    notice("Saved in this browser.");
+    return true;
+  } catch {
+    notice(
+      "Browser storage is unavailable or full. This change was not saved. Export your existing profile for safekeeping.",
+      true,
+    );
+    return false;
+  }
 }
-function card(show){const rating=profile.ratings[show.id];return `<article class="card"><h3>${escape(show.title)}</h3><p class="meta">${show.years.start??'Unknown premiere'} · ${escape(show.kind)} · ${escape(show.medium)}</p><div class="status-controls"><label>Viewing status<select data-view="${escape(show.id)}" aria-label="Viewing status for ${escape(show.title)}">${[['unknown','Unknown'],['seen','Seen'],['not-seen','Not seen']].map(([v,t])=>`<option value="${v}" ${statusOf(profile,show.id)===v?'selected':''}>${t}</option>`).join('')}</select></label><button data-seen="${escape(show.id)}">${statusOf(profile,show.id)==='seen'?'Seen ✓':'Mark Seen'}</button><button data-longago="${escape(show.id)}">Too long ago to judge</button></div><div class="rating actions" role="group" aria-label="Rate ${escape(show.title)}">${[['yes','Yes','I liked it'],['meh','Meh','It was okay'],['no','No','I didn’t like it']].map(([v,label,hint])=>`<button data-id="${escape(show.id)}" data-rate="${v}" aria-label="${label}: ${hint}" aria-pressed="${rating===v}">${label}</button>`).join('')}<button data-id="${escape(show.id)}" data-rate="" ${rating?'':'disabled'}>Clear rating</button></div></article>`;}
-function filtered(){return catalog.shows.filter(s=>(!$('search').value||[s.title,...s.alternate_titles].join(' ').toLowerCase().includes($('search').value.toLowerCase()))&&(!$('decade').value||String(Math.floor(s.years.start/10)*10)===$('decade').value)&&(!$('kind').value||s.kind===$('kind').value)&&(!$('view-filter').value||statusOf(profile,s.id)===$('view-filter').value));}
-function render(){const list=filtered(),size=$('compact').checked?60:30;$('shows').classList.toggle('compact',$('compact').checked);page=Math.min(page,Math.max(0,Math.ceil(list.length/size)-1));$('counts').textContent=`${list.length} of ${catalog.shows.length} shows · ${Object.keys(profile.ratings).length} rated · ${Object.values(profile.viewing).filter(v=>v==='seen').length} seen`;$('shows').innerHTML=list.slice(page*size,(page+1)*size).map(card).join('')||'<p class="empty">No shows match. Try a different search or clear your filters.</p>';$('page-label').textContent=`Page ${page+1} of ${Math.max(1,Math.ceil(list.length/size))}`;$('previous').disabled=page===0;$('next').disabled=(page+1)*size>=list.length;renderRecommendations();renderSurvey();}
-function featureLabel(key){const [group,value]=key.split(':');return `${value.replaceAll('-',' ')} (${group})`;}
-function renderRecommendations(){
- const ranked=rankShows(catalog,profile,{includeUnknown:$('include-unknown').checked,includeCandidates:$('include-candidates').checked});
- const count=Object.keys(profile.ratings).length,limit=$('discovery').checked?50:10;
- $('rec-summary').textContent=`${ranked.length} eligible matches to your viewing-status choices. Showing up to ${limit}. ${count<3?'Only '+count+' ratings: evidence is sparse. Rate a few contrasting shows or use this as an exploration list.':'Scores reflect shared editorial tags, not a prediction of certainty.'}`;
- $('recommendations').innerHTML=ranked.slice(0,limit).map(result=>{
- const reasons=result.contributions.filter(c=>c.weight!==0).slice(0,3).map(c=>`<li>${escape(featureLabel(c.key))}: ${c.contribution>0?'supports':'reduces'} the score (${c.contribution.toFixed(3)} from ${c.source}).</li>`).join('');
- return `<div>${card(result.show)}<p class="meta">${result.status==='unknown'?'Viewing status unknown — may already be familiar':'Explicitly marked Not seen'} · Score ${result.score.toFixed(3)}</p>${reasons?`<ul class="meta">${reasons}</ul>`:'<p class="meta">No directional evidence for these features; ordering may be an ID tie-break.</p>'}<details><summary>Inspect every score contribution</summary><p class="meta">${result.contributions.map(c=>`${escape(featureLabel(c.key))}: ${c.contribution.toFixed(4)}`).join('; ')}</p></details></div>`;
- }).join('')||'<p class="empty">No eligible shows match these viewing statuses. Mark some shows Not seen, or explicitly include Unknown shows below.</p>';
+function card(show) {
+  const rating = profile.ratings[show.id];
+  return `<article class="card"><h3>${escape(show.title)}</h3><p class="meta">${show.years.start ?? "Unknown premiere"} · ${escape(show.kind)} · ${escape(show.medium)}</p><div class="status-controls"><label>Viewing status<select data-view="${escape(show.id)}" aria-label="Viewing status for ${escape(show.title)}">${[
+    ["unknown", "Unknown"],
+    ["seen", "Seen"],
+    ["not-seen", "Not seen"],
+  ]
+    .map(
+      ([v, t]) =>
+        `<option value="${v}" ${statusOf(profile, show.id) === v ? "selected" : ""}>${t}</option>`,
+    )
+    .join(
+      "",
+    )}</select></label><button data-seen="${escape(show.id)}">${statusOf(profile, show.id) === "seen" ? "Seen ✓" : "Mark Seen"}</button><button data-longago="${escape(show.id)}">Too long ago to judge</button></div><div class="rating actions" role="group" aria-label="Rate ${escape(show.title)}">${[
+    ["yes", "Yes", "I liked it"],
+    ["meh", "Meh", "It was okay"],
+    ["no", "No", "I didn’t like it"],
+  ]
+    .map(
+      ([v, label, hint]) =>
+        `<button data-id="${escape(show.id)}" data-rate="${v}" aria-label="${label}: ${hint}" aria-pressed="${rating === v}">${label}</button>`,
+    )
+    .join(
+      "",
+    )}<button data-id="${escape(show.id)}" data-rate="" ${rating ? "" : "disabled"}>Clear rating</button></div></article>`;
 }
-$('later-sections').innerHTML='<section class="panel" aria-labelledby="recommend-title"><p class="eyebrow">NEXT ON YOUR TV</p><h2 id="recommend-title">A few possibilities</h2><p>By default, recommendations use the catalog’s 165 documented-selection records and only shows you marked Not seen. Recognition determines eligibility, never your personal score.</p><label><input type="checkbox" id="include-unknown"> Include Unknown viewing status (these may already be familiar)</label><label><input type="checkbox" id="include-candidates"> Also include the 139 candidates needing reputation evidence</label><label><input type="checkbox" id="discovery"> Broader discovery list: up to 50, ranked from the full eligible pool</label><p id="rec-summary" role="status"></p><div id="recommendations" class="cards"></div><p class="meta">Use the same Seen/rating controls here. Results refresh immediately; Undo above restores recent changes. Negative scores can still appear when all options fit poorly. No score is a match percentage.</p></section>';
-for(const id of ['include-unknown','include-candidates','discovery'])$(id).onchange=renderRecommendations;
-function renderSurvey(){for(const q of SURVEY)$('survey-'+q.key).value=String(profile.survey[q.key]||0);}
-const surveySection=document.createElement('section');surveySection.className='panel';surveySection.innerHTML=`<details id="survey-details"><summary><strong>Optional: eight quick taste questions</strong></summary><p>Skip any or all of these. “No preference” adds zero. More/Less adds ±0.25 to that feature’s weight; a single Yes/No rating contributes ±1 before further evidence. Your answers stay editable and are included in backups.</p>${SURVEY.map(q=>`<label class="pattern">${escape(q.question)}<span class="meta"> — ${escape(q.hint)}</span><select id="survey-${q.key}" data-survey="${q.key}"><option value="0">No preference / it depends</option><option value="1">More of this</option><option value="-1">Less of this</option></select></label>`).join('')}<button id="reset-survey">Reset only survey answers</button></details>`;$('later-sections').prepend(surveySection);
-document.addEventListener('change',event=>{if(event.target.dataset.survey){const next=structuredClone(profile);next.survey[event.target.dataset.survey]=Number(event.target.value);if(save(next))render();else renderSurvey();}});
-$('reset-survey').onclick=()=>{const next=structuredClone(profile);next.survey={};if(save(next))render()};
-function changeRating(id,rating){const next=structuredClone(profile);if(rating){next.ratings[id]=rating;next.viewing[id]='seen';}else delete next.ratings[id];if(save(next))render();}
-document.addEventListener('click',event=>{const b=event.target.closest('button[data-rate]');if(b){const id=b.dataset.id,v=b.dataset.rate;changeRating(id,v);document.querySelector(`[data-id="${CSS.escape(id)}"][data-rate="${v}"]`)?.focus();}});
-for(const id of ['search','decade','kind'])$(id).addEventListener('input',()=>{page=0;render()});
-$('previous').onclick=()=>{page--;render()};$('next').onclick=()=>{page++;render()};
-$('export').onclick=()=>{const blob=new Blob([storageBlocked?localStorage.getItem(STORAGE_KEY):JSON.stringify({...profile,exportedAt:new Date().toISOString()},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='couch-committee-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
-$('import').onchange=async event=>{const file=event.target.files[0];if(!file)return;try{if(file.size>2_000_000)throw Error('Backup exceeds the 2 MB limit.');const next=validateProfile(JSON.parse(await file.text()),catalog);if(confirm('This valid backup will REPLACE your current personal profile. Export first if you want to keep it. Continue?')){if(save(next,true))render();}}catch(error){notice(`Import rejected; your profile is unchanged. ${error.message}`,true)}finally{event.target.value=''}};
-function changeViewing(id,status,longAgo=false){
- if(profile.ratings[id]&&(status!=='seen'||longAgo)&&!confirm('This change will clear the existing enjoyment rating. Continue?')){render();return;}
- const next=setViewing(profile,id,status);if(longAgo)delete next.ratings[id];if(save(next))render();
+function filtered() {
+  return catalog.shows.filter(
+    (s) =>
+      (!$("search").value ||
+        [s.title, ...s.alternate_titles]
+          .join(" ")
+          .toLowerCase()
+          .includes($("search").value.toLowerCase())) &&
+      (!$("decade").value ||
+        String(Math.floor(s.years.start / 10) * 10) === $("decade").value) &&
+      (!$("kind").value || s.kind === $("kind").value) &&
+      (!$("view-filter").value ||
+        statusOf(profile, s.id) === $("view-filter").value),
+  );
 }
-$('extra-filters').innerHTML='<div class="filters"><label>Viewing status<select id="view-filter"><option value="">All statuses</option><option value="unknown">Unknown</option><option value="seen">Seen</option><option value="not-seen">Not seen</option></select></label><label><input type="checkbox" id="compact"> Compact history mode (60 per page)</label><button id="undo">Undo recent change</button></div><p class="meta">Seen needs no rating. “Too long ago to judge” marks Seen and clears a rating only with your confirmation. Undo keeps up to 30 changes during this visit.</p>';
-$('view-filter').onchange=()=>{page=0;render()};$('compact').onchange=()=>{page=0;render()};
-$('undo').onclick=()=>{if(!undo.length){notice('No recent changes to undo.');return;}const previous=undo.pop();if(save(previous)){undo.pop();render();notice('Last change undone.');}else undo.push(previous)};
-document.addEventListener('change',event=>{if(event.target.dataset.view){const id=event.target.dataset.view;changeViewing(id,event.target.value);document.querySelector(`[data-view="${CSS.escape(id)}"]`)?.focus();}});
-document.addEventListener('click',event=>{const b=event.target.closest('[data-seen],[data-longago]');if(b){const id=b.dataset.seen||b.dataset.longago;changeViewing(id,'seen',!!b.dataset.longago);document.querySelector(`[data-seen="${CSS.escape(id)}"]`)?.focus();}});
-async function start(){try{const response=await fetch('./catalog.json');if(!response.ok)throw Error(`HTTP ${response.status}`);catalog=await response.json();if(!Array.isArray(catalog.shows))throw Error('Catalog has no shows list.');profile=emptyProfile();try{const raw=localStorage.getItem(STORAGE_KEY);if(raw)profile=validateProfile(JSON.parse(raw),catalog)}catch{storageBlocked=true;notice('Stored profile could not be read. Existing saved data has been left untouched. Restore a backup or investigate browser storage.',true)}
-for(const decade of [...new Set(catalog.shows.map(s=>Math.floor(s.years.start/10)*10))].sort())$('decade').add(new Option(`${decade}s`,decade));for(const kind of [...new Set(catalog.shows.map(s=>s.kind))].sort())$('kind').add(new Option(kind,kind));render();if(!storageBlocked)notice('Ready. Your ratings are optional and private to this browser.');}catch(error){notice(`Could not load the catalog: ${error.message}. Serve this folder over HTTP, or reload to retry.`,true);document.querySelectorAll('button,input,select').forEach(e=>e.disabled=true)}}
+function render() {
+  const list = filtered(),
+    size = $("compact").checked ? 60 : 30;
+  $("shows").classList.toggle("compact", $("compact").checked);
+  page = Math.min(page, Math.max(0, Math.ceil(list.length / size) - 1));
+  $("counts").textContent =
+    `${list.length} of ${catalog.shows.length} shows · ${Object.keys(profile.ratings).length} rated · ${Object.values(profile.viewing).filter((v) => v === "seen").length} seen · ${catalog.shows.filter((s) => statusOf(profile, s.id) === "not-seen").length} not seen · ${catalog.shows.filter((s) => statusOf(profile, s.id) === "unknown").length} unknown`;
+  $("shows").innerHTML =
+    list
+      .slice(page * size, (page + 1) * size)
+      .map(card)
+      .join("") ||
+    '<p class="empty">No shows match. Try a different search or clear your filters.</p>';
+  $("page-label").textContent =
+    `Page ${page + 1} of ${Math.max(1, Math.ceil(list.length / size))}`;
+  $("previous").disabled = page === 0;
+  $("next").disabled = (page + 1) * size >= list.length;
+  renderRecommendations();
+  renderSurvey();
+  renderPatterns();
+  $("undo").disabled = undo.length === 0;
+}
+function featureLabel(key) {
+  const [group, value] = key.split(":");
+  return `${value.replaceAll("-", " ")} (${group})`;
+}
+function renderRecommendations() {
+  const ranked = rankShows(catalog, profile, {
+    includeUnknown: $("include-unknown").checked,
+    includeCandidates: $("include-candidates").checked,
+  });
+  const count = Object.keys(profile.ratings).length,
+    limit = $("discovery").checked ? 50 : 10;
+  $("rec-summary").textContent =
+    `${ranked.length} eligible matches to your viewing-status choices. Showing up to ${limit}. ${count < 3 ? "Only " + count + " ratings: evidence is sparse. Rate a few contrasting shows or use this as an exploration list." : "Scores reflect shared editorial tags, not a prediction of certainty."}`;
+  $("recommendations").innerHTML =
+    ranked
+      .slice(0, limit)
+      .map((result) => {
+        const reasons = result.contributions
+          .filter((c) => c.weight !== 0)
+          .slice(0, 3)
+          .map(
+            (c) =>
+              `<li>${escape(featureLabel(c.key))}: ${c.contribution > 0 ? "supports" : "reduces"} the score (${c.contribution.toFixed(3)} from ${c.source}).</li>`,
+          )
+          .join("");
+        return `<div>${card(result.show)}<p class="meta">${result.status === "unknown" ? "Viewing status unknown — may already be familiar" : "Explicitly marked Not seen"} · Score ${result.score.toFixed(3)}</p>${reasons ? `<ul class="meta">${reasons}</ul>` : '<p class="meta">No directional evidence for these features; ordering may be an ID tie-break.</p>'}<details><summary>Inspect every score contribution</summary><p class="meta">${result.contributions.map((c) => `${escape(featureLabel(c.key))}: ${c.contribution.toFixed(4)} (${escape(c.source)})`).join("; ")}</p></details></div>`;
+      })
+      .join("") ||
+    '<p class="empty">No eligible shows match these viewing statuses. Mark some shows Not seen, or explicitly include Unknown shows below.</p>';
+}
+$("later-sections").innerHTML =
+  '<section class="panel" aria-labelledby="recommend-title"><p class="eyebrow">NEXT ON YOUR TV</p><h2 id="recommend-title">A few possibilities</h2><p>By default, recommendations use the catalog’s 165 documented-selection records and only shows you marked Not seen. Recognition determines eligibility, never your personal score.</p><label><input type="checkbox" id="include-unknown"> Include Unknown viewing status (these may already be familiar)</label><label><input type="checkbox" id="include-candidates"> Also include the 139 candidates needing reputation evidence</label><label><input type="checkbox" id="discovery"> Broader discovery list: up to 50, ranked from the full eligible pool</label><p id="rec-summary" role="status"></p><div id="recommendations" class="cards"></div><p class="meta">Use the same Seen/rating controls here. Results refresh immediately; Undo above restores recent changes. Negative scores can still appear when all options fit poorly. No score is a match percentage.</p></section>';
+for (const id of ["include-unknown", "include-candidates", "discovery"])
+  $(id).onchange = renderRecommendations;
+function renderSurvey() {
+  for (const q of SURVEY)
+    $("survey-" + q.key).value = String(profile.survey[q.key] || 0);
+}
+const surveySection = document.createElement("section");
+surveySection.className = "panel";
+surveySection.innerHTML = `<details id="survey-details"><summary><strong>Optional: eight quick taste questions</strong></summary><p>Skip any or all of these. “No preference” adds zero. More/Less adds ±0.25 to that feature’s weight; a single Yes/No rating contributes ±1 before further evidence. Your answers stay editable and are included in backups.</p>${SURVEY.map((q) => `<label class="pattern">${escape(q.question)}<span class="meta"> — ${escape(q.hint)}</span><select id="survey-${q.key}" data-survey="${q.key}"><option value="0">No preference / it depends</option><option value="1">More of this</option><option value="-1">Less of this</option></select></label>`).join("")}<button id="reset-survey">Reset only survey answers</button></details>`;
+$("later-sections").prepend(surveySection);
+document.addEventListener("change", (event) => {
+  if (event.target.dataset.survey) {
+    const next = structuredClone(profile);
+    next.survey[event.target.dataset.survey] = Number(event.target.value);
+    if (save(next)) render();
+    else renderSurvey();
+  }
+});
+$("reset-survey").onclick = () => {
+  const next = structuredClone(profile);
+  next.survey = {};
+  if (save(next)) render();
+};
+function renderPatterns() {
+  const evidence = ratingEvidence(catalog, profile);
+  const keys = [
+    ...new Set([
+      ...Object.entries(evidence)
+        .sort((a, b) => b[1].count - a[1].count || a[0].localeCompare(b[0]))
+        .slice(0, 6)
+        .map(([key]) => key),
+      ...Object.keys(profile.adjustments),
+    ]),
+  ];
+  $("patterns").innerHTML =
+    keys
+      .map((key) => {
+        const e = evidence[key] || {
+          count: 0,
+          yes: [],
+          no: [],
+          meh: [],
+          weight: 0,
+        };
+        const list = (values) =>
+          values
+            .slice(0, 3)
+            .map((s) => escape(s.title))
+            .join(", ") || "none";
+        return `<div class="pattern"><h3>${escape(featureLabel(key))}</h3><p>${e.count < 3 ? "Very tentative: only " + e.count + " rated example(s)." : "Tentative pattern from " + e.count + " rated examples."} ${e.weight > 0 ? "You may lean toward this feature." : e.weight < 0 ? "You may lean away from this feature." : "There is no net directional signal."}</p><p class="meta">Liked (${e.yes.length}): ${list(e.yes)}. Disliked (${e.no.length}): ${list(e.no)}. Meh (${e.meh.length}): ${list(e.meh)}.${e.yes.length && e.no.length ? " There is conflicting evidence: you liked and disliked shows sharing this feature." : ""}</p><label>Your correction<select data-adjust="${key}" aria-label="Adjust ${escape(featureLabel(key))}">${[
+          ["", "Use ratings and survey"],
+          ["more", "More of this (+1 weight)"],
+          ["less", "Less of this (−1 weight)"],
+          ["ignore", "Ignore this feature (zero contribution)"],
+        ]
+          .map(
+            ([value, label]) =>
+              `<option value="${value}" ${profile.adjustments[key] === value ? "selected" : ""}>${label}</option>`,
+          )
+          .join("")}</select></label></div>`;
+      })
+      .join("") ||
+    "<p>Rate a few familiar shows to see tentative patterns. Seen-only history does not imply a preference.</p>";
+}
+const patternSection = document.createElement("section");
+patternSection.className = "panel";
+patternSection.innerHTML =
+  '<h2>What your ratings suggest</h2><p>A shared feature does not prove why you liked or disliked a show. These are associations from editorial tags, not a diagnosis of your taste. We show up to six frequently represented features, plus any you already adjusted.</p><p class="meta">More/Less adds ±1 to the feature weight. Ignore sets all of its contributions to zero (including survey and ratings); it stays in the averaging denominator. Corrections affect scoring, not catalog tags.</p><div id="patterns"></div><button id="reset-adjustments">Clear only feature adjustments</button>';
+$("later-sections").append(patternSection);
+document.addEventListener("change", (event) => {
+  if (event.target.dataset.adjust) {
+    const key = event.target.dataset.adjust,
+      next = structuredClone(profile);
+    if (event.target.value) next.adjustments[key] = event.target.value;
+    else delete next.adjustments[key];
+    if (save(next)) render();
+    else renderPatterns();
+    document.querySelector(`[data-adjust="${CSS.escape(key)}"]`)?.focus();
+  }
+});
+$("reset-adjustments").onclick = () => {
+  const next = structuredClone(profile);
+  next.adjustments = {};
+  if (save(next)) render();
+};
+function changeRating(id, rating) {
+  const next = structuredClone(profile);
+  if (rating) {
+    next.ratings[id] = rating;
+    next.viewing[id] = "seen";
+  } else delete next.ratings[id];
+  if (save(next)) render();
+}
+document.addEventListener("click", (event) => {
+  const b = event.target.closest("button[data-rate]");
+  if (b) {
+    const id = b.dataset.id,
+      v = b.dataset.rate;
+    changeRating(id, v);
+    document
+      .querySelector(`[data-id="${CSS.escape(id)}"][data-rate="${v}"]`)
+      ?.focus();
+  }
+});
+for (const id of ["search", "decade", "kind"])
+  $(id).addEventListener("input", () => {
+    page = 0;
+    render();
+  });
+$("previous").onclick = () => {
+  page--;
+  render();
+};
+$("next").onclick = () => {
+  page++;
+  render();
+};
+$("export").onclick = () => {
+  const blob = new Blob(
+    [
+      storageBlocked
+        ? localStorage.getItem(STORAGE_KEY)
+        : JSON.stringify(
+            { ...profile, exportedAt: new Date().toISOString() },
+            null,
+            2,
+          ),
+    ],
+    { type: "application/json" },
+  );
+  const url = URL.createObjectURL(blob),
+    a = document.createElement("a");
+  a.href = url;
+  a.download = "couch-committee-backup.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+$("import").onchange = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    if (file.size > 2_000_000) throw Error("Backup exceeds the 2 MB limit.");
+    const next = validateProfile(JSON.parse(await file.text()), catalog);
+    if (
+      confirm(
+        "This valid backup will REPLACE your current personal profile. Export first if you want to keep it. Continue?",
+      )
+    ) {
+      if (save(next, true)) render();
+    }
+  } catch (error) {
+    notice(
+      `Import rejected; your profile is unchanged. ${error.message}`,
+      true,
+    );
+  } finally {
+    event.target.value = "";
+  }
+};
+function changeViewing(id, status, longAgo = false) {
+  if (
+    profile.ratings[id] &&
+    (status !== "seen" || longAgo) &&
+    !confirm("This change will clear the existing enjoyment rating. Continue?")
+  ) {
+    render();
+    return;
+  }
+  const next = setViewing(profile, id, status);
+  if (longAgo) delete next.ratings[id];
+  if (save(next)) render();
+}
+$("extra-filters").innerHTML =
+  '<div class="filters"><label>Viewing status<select id="view-filter"><option value="">All statuses</option><option value="unknown">Unknown</option><option value="seen">Seen</option><option value="not-seen">Not seen</option></select></label><label><input type="checkbox" id="compact"> Compact history mode (60 per page; turn off to edit ratings/status)</label><button id="undo">Undo recent change</button></div><p class="meta">Seen needs no rating. “Too long ago to judge” marks Seen and clears a rating only with your confirmation. Undo keeps up to 30 changes during this visit.</p>';
+$("view-filter").onchange = () => {
+  page = 0;
+  render();
+};
+$("compact").onchange = () => {
+  page = 0;
+  render();
+};
+$("undo").onclick = () => {
+  if (!undo.length) {
+    notice("No recent changes to undo.");
+    return;
+  }
+  const previous = undo.pop();
+  if (save(previous)) {
+    undo.pop();
+    render();
+    notice("Last change undone.");
+  } else undo.push(previous);
+};
+document.addEventListener("change", (event) => {
+  if (event.target.dataset.view) {
+    const id = event.target.dataset.view;
+    changeViewing(id, event.target.value);
+    document.querySelector(`[data-view="${CSS.escape(id)}"]`)?.focus();
+  }
+});
+document.addEventListener("click", (event) => {
+  const b = event.target.closest("[data-seen],[data-longago]");
+  if (b) {
+    const id = b.dataset.seen || b.dataset.longago;
+    changeViewing(id, "seen", !!b.dataset.longago);
+    document.querySelector(`[data-seen="${CSS.escape(id)}"]`)?.focus();
+  }
+});
+async function start() {
+  try {
+    const response = await fetch("./catalog.json");
+    if (!response.ok) throw Error(`HTTP ${response.status}`);
+    catalog = await response.json();
+    if (!Array.isArray(catalog.shows))
+      throw Error("Catalog has no shows list.");
+    profile = emptyProfile();
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) profile = validateProfile(JSON.parse(raw), catalog);
+    } catch {
+      storageBlocked = true;
+      notice(
+        "Stored profile could not be read. Existing saved data has been left untouched. Restore a backup or investigate browser storage.",
+        true,
+      );
+    }
+    for (const decade of [
+      ...new Set(catalog.shows.map((s) => Math.floor(s.years.start / 10) * 10)),
+    ].sort())
+      $("decade").add(new Option(`${decade}s`, decade));
+    for (const kind of [...new Set(catalog.shows.map((s) => s.kind))].sort())
+      $("kind").add(new Option(kind, kind));
+    document
+      .querySelectorAll("button,input,select")
+      .forEach((e) => (e.disabled = false));
+    render();
+    if (!storageBlocked)
+      notice("Ready. Your ratings are optional and private to this browser.");
+  } catch (error) {
+    notice(
+      `Could not load the catalog: ${error.message}. Serve this folder over HTTP, or reload to retry.`,
+      true,
+    );
+    document
+      .querySelectorAll("button,input,select")
+      .forEach((e) => (e.disabled = true));
+  }
+}
+document
+  .querySelectorAll("button,input,select")
+  .forEach((e) => (e.disabled = true));
 start();
