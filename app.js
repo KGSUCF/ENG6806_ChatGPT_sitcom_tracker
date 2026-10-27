@@ -7,6 +7,7 @@ import {
   rankShows,
   ratingEvidence,
   SURVEY,
+  sortShows,
 } from "./core.mjs";
 const $ = (id) => document.getElementById(id);
 let catalog,
@@ -92,7 +93,7 @@ function filtered() {
   );
 }
 function render() {
-  const list = filtered(),
+  const list = sortShows(filtered(), $("sort").value),
     size = $("compact").checked ? 60 : 30;
   $("shows").classList.toggle("compact", $("compact").checked);
   page = Math.min(page, Math.max(0, Math.ceil(list.length / size) - 1));
@@ -249,7 +250,7 @@ document.addEventListener("click", (event) => {
       ?.focus();
   }
 });
-for (const id of ["search", "decade", "kind"])
+for (const id of ["search", "decade", "kind", "sort"])
   $(id).addEventListener("input", () => {
     page = 0;
     render();

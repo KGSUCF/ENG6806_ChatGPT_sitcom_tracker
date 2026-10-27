@@ -63,9 +63,15 @@ Commit: Add inspectable taste patterns and personal feature corrections.
 7. Export; make a change; import the backup and confirm replacement. Cancel an import and try malformed JSON. Neither should change the profile.
 8. Check phone-width layout, keyboard operation and visible focus in a real browser. DOM tests do not verify rendering, screen readers, native download behavior, or every browser's storage restrictions.
 
-## Prompt 7 — pending real usage observations
+## Prompt 7 — newest-first catalog sorting
 
-No usage observations or focused revision were supplied: the prompt contains placeholders. No substantive revision, issue, branch or pull request has been fabricated. Once Karen reports what worked, what was confusing, and one desired improvement, turn that evidence into an issue with observable acceptance criteria, then implement on a feature branch, validate, open a PR, and report the diff. The assistant handles Git operations under Karen's updated authorization. Deployment is still pending the publication step.
+Observed in local use: starting with the oldest shows was not the desired browsing experience. Issue #1 records the request and acceptance criteria. The feature/catalog-sorting branch adds a labeled Sort shows control: Newest first (default), Oldest first, Title A–Z. Year ties use title then canonical ID; unknown years sort last in chronological modes. Sorting works on a copy of the full filtered list before pagination, including compact mode. Changing sort resets pagination but keeps filters. Recommendations retain their independent personal-match ranking.
+
+No catalog edits, personal-data migration, backup-format change, or new storage keys are needed. The choice lasts during the current page visit; reload starts newest-first. core.mjs contains the pure sortShows function; app.js applies it only to browsing results. Tests cover order, ties, unknown years, immutability, pagination reset, retained search and unchanged profile/recommendation output. Existing profile, survey, correction and DOM checks also pass. Visual browser verification remains a manual check.
+
+Manual check: pull main in GitHub Desktop, refresh localhost at the same address/port, verify newer shows appear first, switch to Oldest first and Title A–Z, and confirm your saved ratings remain. The existing local server can keep running while updated files are pulled. Use the PR's Files changed tab to review this focused revision. GitHub Pages deployment is not part of this sorting change.
+
+Commit: Add newest-first catalog sorting with selectable order.
 
 A branch gives the revision its own line of commits without replacing main. The manual equivalent is `git switch -c feature/short-description` from an up-to-date main; this is explanatory, not a task Karen must perform. A pull request compares that branch with main so the focused change and tests can be reviewed before merging.
 
