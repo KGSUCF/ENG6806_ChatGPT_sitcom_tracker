@@ -136,6 +136,42 @@ assert.equal(p.ratings[id], "meh");
 assert.equal(p.viewing[id], "seen");
 assert.deepEqual(p.survey, {});
 assert.deepEqual(p.adjustments, {});
+
+const savedBeforeSorting = localStorage.getItem("couch-committee-profile");
+const recBeforeSorting = document.getElementById("recommendations").innerHTML;
+$("search").value = "";
+$("search").dispatchEvent(event("input"));
+$("next").click();
+assert($("page-label").textContent.startsWith("Page 2"));
+$("sort").value = "oldest";
+$("sort").dispatchEvent(event("input"));
+assert($("page-label").textContent.startsWith("Page 1"));
+assert(document.querySelector("#shows .meta").textContent.startsWith("1968"));
+$("sort").value = "newest";
+$("sort").dispatchEvent(event("input"));
+assert(
+  document
+    .querySelector("#shows .meta")
+    .textContent.startsWith(
+      String(Math.max(...catalog.shows.map((s) => s.years.start))),
+    ),
+);
+$("search").value = "Frasier";
+$("search").dispatchEvent(event("input"));
+$("sort").value = "title";
+$("sort").dispatchEvent(event("input"));
+assert.equal($("search").value, "Frasier");
+assert.equal(
+  localStorage.getItem("couch-committee-profile"),
+  savedBeforeSorting,
+);
+assert.equal(
+  document.getElementById("recommendations").innerHTML,
+  recBeforeSorting,
+);
+console.log(
+  "DOM sorting: default/newest, oldest, pagination reset, retained search, profile and recommendation invariance passed.",
+);
 // Simulate a fresh page using the saved browser data.
 const stored = localStorage.getItem("couch-committee-profile");
 const fresh = new JSDOM(fs.readFileSync(new URL("index.html", root), "utf8"), {

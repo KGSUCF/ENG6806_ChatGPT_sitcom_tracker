@@ -222,3 +222,21 @@ export const SURVEY = [
     hint: "Fiction presented with documentary-style devices.",
   },
 ];
+
+// Sort a copy: neither catalog order nor recommendation ranking is modified.
+export function sortShows(shows, order = "newest") {
+  const byTitle = (a, b) =>
+    a.title.localeCompare(b.title, "en", { sensitivity: "base" }) ||
+    a.id.localeCompare(b.id, "en");
+  return [...shows].sort((a, b) => {
+    if (order === "title") return byTitle(a, b);
+    const ay = a.years?.start,
+      by = b.years?.start;
+    const aKnown = Number.isFinite(ay),
+      bKnown = Number.isFinite(by);
+    if (aKnown !== bKnown) return aKnown ? -1 : 1;
+    return (
+      (aKnown ? (order === "oldest" ? ay - by : by - ay) : 0) || byTitle(a, b)
+    );
+  });
+}

@@ -6,7 +6,7 @@ Users will record shows they have seen without having to rate them, optionally r
 
 ## Current stage
 
-Prompts 2–6 are implemented: tracking, viewing history, transparent recommendations, an optional taste survey, and personal feature corrections. Prompt 7 awaits real usage observations and a focused revision request. See [DEVELOPMENT.md](DEVELOPMENT.md) for preview instructions, checks, and stage-by-stage changes.
+Prompts 2–6 are implemented: tracking, viewing history, transparent recommendations, an optional taste survey, and personal feature corrections. Prompt 7 adds newest-first catalog sorting with Oldest first and Title A–Z alternatives, based on local usage feedback. See [DEVELOPMENT.md](DEVELOPMENT.md) for preview instructions, checks, and stage-by-stage changes.
 
 The repository root inspected on October 27, 2026 contains `catalog.json` and `ChatGPTcatalog.json`. Before this README was added, there was no existing webpage code or README on the inspected default branch. Preserve both catalogs; the latter is a reference snapshot only.
 
@@ -87,7 +87,7 @@ No framework, build step, or server-side application. Personal data will live se
 5. Add explainable recommendations using the documented eligibility rules, preferences, and seen-show exclusions.
 6. Add personal-data export/import with alias handling; check accessibility, mobile layout, and failure cases; prepare GitHub Pages deployment.
 
-The staged implementation history and validations are recorded in DEVELOPMENT.md. GitHub Pages publication and the usage-driven branch/PR revision remain pending.
+The staged implementation history and validations are recorded in DEVELOPMENT.md. The usage-driven sorting revision uses a feature branch and pull request. GitHub Pages publication remains pending.
 
 ## Development and version control
 
