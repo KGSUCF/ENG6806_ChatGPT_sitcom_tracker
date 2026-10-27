@@ -31,3 +31,13 @@ Fixed profiles in tests/recommendations.test.mjs (all others Not seen): empty; c
 Checks: deterministic results, full 165/304 pools, Seen exclusion without ratings, Unknown opt-in, contribution sums, conflicting evidence. Run `node tests/recommendations.test.mjs`. Manual: toggle Unknown, rate a suggestion and observe it disappear, Undo, and compare top-ten with broader discovery.
 
 Commit: Add transparent full-pool recommendation baseline.
+
+## Stage 5 — optional survey
+
+Eight catalog-backed features: warm tone, witty banter, physical comedy, dark humor, cringe humor, workplace, episodic structure, mockumentary. More/Less contributes ±0.25 per feature; neutral contributes zero. Rating and survey contributions are separately inspectable. Ratings generally have stronger per-feature influence (one Yes/No gives ±1); conflicting ratings can cancel. A survey cannot manufacture missing tags or certainty. Reset affects only survey answers. Version 3 backups preserve all data; versions 1 and 2 migrate with an empty survey.
+
+Comparison uses the same three fixed profiles and adds warm=More, cringe=Less. Neutral answers reproduce the baseline exactly. Contrasting profile retains its top five, with small score nudges (Friends 1.250, Mad About You 1.156, Rhoda 1.104, Living Single 1.023, Big Bang Theory 1.019). The contradictory profile becomes Shrinking, Taxi, Alice, The Kominsky Method, Barney Miller. With no ratings, survey-only ordering begins Mad About You, Ghosts (UK), Chico and the Man, Empty Nest, My Name Is Earl. These shifts reflect the explicit nudges, not demonstrated improvement. Sparse/no-rating results are still labeled cautiously.
+
+Checks: neutral equivalence, survey vocabulary, invalid answers, earlier backup migration, round trips, plus DOM integration for filters, ratings, status confirmation, Undo, compact mode, recommendation limits/Seen exclusions, survey persistence and independent reset. `tests/interface.test.mjs` needs jsdom installed in the developer test environment; it is not a site dependency. Browser installation failed in the execution environment, so DOM checks are not visual browser verification. Manual: open/skip/revisit the survey; reset; import an older backup; check keyboard and phone layout.
+
+Commit: Add optional catalog-based taste survey and compare baseline results.
