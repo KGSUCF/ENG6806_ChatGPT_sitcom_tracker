@@ -6,7 +6,7 @@ Users will record shows they have seen without having to rate them, optionally r
 
 ## Current stage
 
-Stage 1: inspect the repository and dataset and document the plan. No webpage has been built.
+Stage 2 is implemented: static catalog browsing, optional ratings, and personal backups. See [DEVELOPMENT.md](DEVELOPMENT.md) for preview instructions, checks, and stage-by-stage changes.
 
 The repository root inspected on October 27, 2026 contains `catalog.json` and `ChatGPTcatalog.json`. Before this README was added, there was no existing webpage code or README on the inspected default branch. Preserve both catalogs; the latter is a reference snapshot only.
 
@@ -94,4 +94,4 @@ Karen has authorized the assistant to handle repository edits, staging, clear co
 
 A commit is a named snapshot of selected changes; pushing sends local commits to GitHub. For this first change, review only a new `README.md`; neither catalog should appear as modified. Suggested commit message: `Document sitcom tracker project plan`.
 
-There is nothing to run in Stage 1. Once the page loads JSON in Stage 2, preview through a local HTTP server or GitHub Pages rather than relying on a double-clicked `file://` page. No build step will be introduced.
+Preview using `python -m http.server 8000` from this folder, then visit http://localhost:8000. See DEVELOPMENT.md. No build step is required.
